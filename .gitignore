@@ -3,3 +3,6 @@ dist/
 .expo/
 backend/data/
 .DS_Store
+
+# mobile lives in its own repository (isignedit_mobilApp)
+mobile/
