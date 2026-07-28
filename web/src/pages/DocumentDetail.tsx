@@ -51,9 +51,17 @@ export default function DocumentDetail() {
             </div>
           ))}
 
+          {doc.trackingNumber && (
+            <div className="meta" style={{ marginTop: 12 }}>
+              Tracking: <b style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>{doc.trackingNumber}</b>
+            </div>
+          )}
           <div className="row" style={{ marginTop: 16 }}>
             <button className="btn" disabled={doc.status !== 'signed'} onClick={act(() => api.dispatch(doc.id))}>
               Print &amp; post — certified
+            </button>
+            <button className="btn ghost" disabled={doc.status !== 'dispatched'} onClick={act(() => api.track(doc.id))}>
+              Carrier scan (dev)
             </button>
             <button className="btn ghost" disabled={doc.status !== 'dispatched'} onClick={act(() => api.deliver(doc.id))}>
               Mark delivered
@@ -76,6 +84,9 @@ export default function DocumentDetail() {
                   <b>{EVENT_LABELS[e.type] ?? e.type}</b>
                   <span>
                     {e.actor} · {new Date(e.at).toLocaleString()}
+                    {typeof e.data.status === 'string' && <> · {e.data.status as string}</>}
+                    {typeof e.data.location === 'string' && <> ({e.data.location as string})</>}
+                    {typeof e.data.batch === 'string' && <> · {e.data.batch as string} → {e.data.recipient as string}</>}
                   </span>
                   <div className="hash">{e.hash.slice(0, 18)}…</div>
                 </div>

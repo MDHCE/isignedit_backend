@@ -7,20 +7,26 @@ import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { EvidenceEvent, EventType, SignedDocument } from './types.js';
+import type { DeliveryBatch, EvidenceEvent, EventType, SignedDocument } from './types.js';
 
 const DATA_FILE = join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'store.json');
 
 interface Db {
   documents: SignedDocument[];
   events: EvidenceEvent[];
+  batches: DeliveryBatch[];
 }
 
-let db: Db = { documents: [], events: [] };
+let db: Db = { documents: [], events: [], batches: [] };
 
 export function load(): void {
   if (existsSync(DATA_FILE)) {
-    db = JSON.parse(readFileSync(DATA_FILE, 'utf8')) as Db;
+    const parsed = JSON.parse(readFileSync(DATA_FILE, 'utf8')) as Partial<Db>;
+    db = {
+      documents: parsed.documents ?? [],
+      events: parsed.events ?? [],
+      batches: parsed.batches ?? [],
+    };
   }
 }
 
@@ -104,4 +110,25 @@ export function newCode(): string {
   const pick = (n: number) =>
     Array.from({ length: n }, () => abc[Math.floor(Math.random() * abc.length)]).join('');
   return `${pick(4)}-${pick(4)}`;
+}
+
+export function allBatches(): DeliveryBatch[] {
+  return [...db.batches].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export function findBatch(id: string): DeliveryBatch | undefined {
+  return db.batches.find((b) => b.id === id);
+}
+
+export function saveBatch(batch: DeliveryBatch): void {
+  const i = db.batches.findIndex((b) => b.id === batch.id);
+  if (i >= 0) db.batches[i] = batch;
+  else db.batches.push(batch);
+  persist();
+}
+
+/** Registered-mail style tracking number. */
+export function newTrackingNumber(): string {
+  const n = () => Math.floor(Math.random() * 10);
+  return `IS ${n()}${n()}${n()}${n()} ${n()}${n()}${n()}${n()} ${n()} IT`;
 }

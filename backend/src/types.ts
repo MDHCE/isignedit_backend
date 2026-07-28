@@ -21,6 +21,8 @@ export interface SignedDocument {
   tier: SignatureTier;
   status: DocumentStatus;
   parties: Party[];
+  /** carrier tracking number, set when the certified copy is posted */
+  trackingNumber: string | null;
   createdAt: string;
 }
 
@@ -32,7 +34,10 @@ export type EventType =
   | 'PRINT_DISPATCHED'
   | 'PRINT_ATTESTED'
   | 'POSTED'
-  | 'DELIVERED';
+  | 'TRACKING_UPDATE'
+  | 'DELIVERED'
+  | 'BATCH_ADDED'
+  | 'BATCH_DISPATCHED';
 
 /** One link of the hash-chained evidence ledger (Architecture §3.1). */
 export interface EvidenceEvent {
@@ -44,4 +49,28 @@ export interface EvidenceEvent {
   data: Record<string, unknown>;
   prevHash: string;
   hash: string;
+}
+
+export type BatchCadence = 'weekly' | 'monthly';
+
+export interface BatchShipment {
+  at: string;
+  trackingNumber: string;
+  documentIds: string[];
+}
+
+/**
+ * Recurring certified delivery to a standing recipient (e.g. weekly to the
+ * accountant). Documents accumulate in the open cycle; dispatch posts them
+ * as one certified envelope and starts the next cycle.
+ */
+export interface DeliveryBatch {
+  id: string;
+  name: string;
+  recipient: { name: string; email: string; address: string };
+  cadence: BatchCadence;
+  nextSendAt: string;
+  documentIds: string[];
+  shipments: BatchShipment[];
+  createdAt: string;
 }

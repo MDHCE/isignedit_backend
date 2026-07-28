@@ -21,7 +21,8 @@ Status legend: ✅ implemented (dev scaffold) · 🔲 placeholder in UI · 📋 
 | Multi-party invitations (any number, roles) | ✅ basic | parties on create; sequential order & deadlines 📋 |
 | Signing status board | ✅ | web `/documents/:id` |
 | Dispatch to certified print & post | ✅ stub | API `/dispatch` (real Print Station queue 📋 Stage 1) |
-| Delivery tracking into evidence chain | ✅ stub | `/deliver` (carrier webhooks 📋) |
+| Delivery tracking in document history | ✅ | tracking number on dispatch; `TRACKING_UPDATE` carrier scans in the evidence chain (`POST /:id/tracking` = webhook stand-in); shown on detail + verify pages |
+| **Batched delivery** — standing recipient, weekly/monthly cycles | ✅ | web `/batches`: documents collect in the open cycle → one certified envelope (`BATCH_ADDED`/`BATCH_DISPATCHED` in each doc's chain); auto-send scheduler 📋 |
 | **AI document generation** (draft + improve, per contract) | 🔲 | web `/draft` — Contract Intelligence service 📋 |
 | **Attorney validation** (extra, per review) | 📋 | reachable from `/draft` risk flags |
 | **Video session** booking (extra, per session) | 🔲 | web `/video` |
