@@ -1,0 +1,92 @@
+/* iSigned.it app — ink-wash design tokens (matches the landing page system) */
+:root {
+  --ink-950: #0a1428; --ink-900: #101f3c; --ink-800: #16305a; --ink-700: #1c3a6b;
+  --ink-500: #2f5fa8; --ink-400: #3a6cc0; --ink-300: #5c8bd6; --ink-200: #9db9e8;
+  --band: #eef1f6; --card: #fff; --line: #dfe4ee; --text: #2b2a29; --muted: #5f6b80;
+  --ok: #1c9a5b; --radius: 10px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Montserrat', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: var(--text); background: var(--band); font-size: 15px; line-height: 1.6;
+}
+a { color: inherit; text-decoration: none; }
+
+.topbar {
+  background: #fff; border-bottom: 1px solid var(--line);
+  padding: 14px 28px; display: flex; align-items: center; gap: 28px;
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar .brand { font-weight: 700; letter-spacing: 1px; color: var(--ink-800); font-size: 17px; }
+.topbar .brand .s { font-style: italic; color: #191919; }
+.topbar nav { display: flex; gap: 22px; font-size: 13.5px; font-weight: 500; color: var(--muted); }
+.topbar nav a.active, .topbar nav a:hover { color: var(--ink-500); }
+
+.page { max-width: 1000px; margin: 0 auto; padding: 36px 24px 80px; }
+.page h1 { font-size: 24px; font-weight: 700; color: var(--ink-900); letter-spacing: -0.2px; }
+.page .kicker {
+  font-size: 11.5px; font-weight: 600; letter-spacing: 3px; color: var(--ink-400);
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.underline { width: 150px; margin-top: 12px; }
+
+.grid { display: grid; gap: 16px; margin-top: 28px; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 22px 24px; transition: box-shadow .25s;
+}
+a.card:hover { box-shadow: 0 12px 30px rgba(22, 48, 90, .09); }
+.card h3 { font-size: 16px; font-weight: 600; color: var(--ink-900); }
+.card .meta { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+
+.row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.spread { justify-content: space-between; }
+
+.badge {
+  display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px;
+  text-transform: uppercase; padding: 3px 10px; border-radius: 3px;
+}
+.badge.awaiting_signatures { background: #fdf1de; color: #92600a; }
+.badge.signed { background: #e2f4ea; color: #1c7a4b; }
+.badge.dispatched { background: #e5edfb; color: var(--ink-500); }
+.badge.delivered { background: var(--ink-800); color: #fff; }
+.badge.tier { background: var(--band); color: var(--ink-700); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer;
+  border-radius: 8px; padding: 10px 20px; font: 600 13.5px 'Montserrat', sans-serif;
+  background: var(--ink-700); color: #fff; transition: background .2s;
+}
+.btn:hover { background: var(--ink-500); }
+.btn.ghost { background: transparent; color: var(--ink-800); border: 1px solid var(--ink-800); }
+.btn.ghost:hover { background: var(--ink-800); color: #fff; }
+.btn:disabled { opacity: .45; cursor: default; }
+
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.field label { font-size: 12px; font-weight: 600; letter-spacing: .6px; color: var(--ink-800); }
+.field input, .field select {
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+  font: 400 14px 'Montserrat', sans-serif; background: #fff;
+}
+.field input:focus { outline: 2px solid var(--ink-300); border-color: transparent; }
+
+.timeline { margin-top: 10px; }
+.tl-item { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid #f0f3f8; }
+.tl-item:last-child { border-bottom: 0; }
+.tl-dot {
+  width: 12px; height: 12px; border-radius: 3px; margin-top: 5px; flex-shrink: 0;
+  background: var(--ink-400);
+}
+.tl-item b { font-size: 13.5px; color: var(--ink-900); display: block; }
+.tl-item span { font-size: 12px; color: var(--muted); }
+.tl-item .hash { font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; color: #9aa7bd; }
+
+.chain-ok { color: var(--ok); font-weight: 600; font-size: 13px; }
+.chain-bad { color: #c0392b; font-weight: 600; font-size: 13px; }
+
+.verify-hero {
+  background: linear-gradient(160deg, var(--ink-700), var(--ink-500));
+  border-radius: 14px; color: #fff; padding: 30px; margin-bottom: 20px;
+}
+.verify-hero .code { font-family: ui-monospace, Menlo, monospace; font-size: 22px; letter-spacing: 2px; }
+.empty { text-align: center; color: var(--muted); padding: 60px 0; }

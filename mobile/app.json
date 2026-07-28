@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "iSigned.it",
+    "slug": "isigned-it",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "isigned",
+    "userInterfaceStyle": "light",
+    "splash": { "backgroundColor": "#101f3c" },
+    "ios": { "supportsTablet": false, "bundleIdentifier": "it.isigned.app" },
+    "android": { "package": "it.isigned.app" }
+  }
+}
