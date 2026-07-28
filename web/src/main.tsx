@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom';
+import { authEnabled, currentUser, signIn, signOut, userManager } from './auth';
 import Dashboard from './pages/Dashboard';
 import NewDocument from './pages/NewDocument';
 import DocumentDetail from './pages/DocumentDetail';
@@ -27,6 +28,7 @@ function App() {
           <NavLink to="/billing">Payment</NavLink>
           <NavLink to="/profile">Profile</NavLink>
         </nav>
+        <SessionBox />
       </header>
       <Routes>
         <Route path="/" element={<Dashboard />} />
@@ -40,9 +42,42 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/contacts" element={<Contacts />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
       </Routes>
     </BrowserRouter>
   );
+}
+
+function SessionBox() {
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    if (authEnabled) currentUser().then((u) => setName(u?.profile.name ?? u?.profile.email ?? null));
+  }, []);
+  if (!authEnabled) {
+    return <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted)' }}>dev session</span>;
+  }
+  return name ? (
+    <span style={{ marginLeft: 'auto', fontSize: 13, display: 'flex', gap: 12, alignItems: 'center' }}>
+      <b style={{ color: 'var(--ink-800)' }}>{name}</b>
+      <button className="btn ghost" style={{ padding: '6px 14px' }} onClick={signOut}>Sign out</button>
+    </span>
+  ) : (
+    <button className="btn" style={{ marginLeft: 'auto', padding: '8px 18px' }} onClick={signIn}>
+      Sign in
+    </button>
+  );
+}
+
+function AuthCallback() {
+  const nav = useNavigate();
+  const [error, setError] = useState('');
+  useEffect(() => {
+    userManager
+      ?.signinRedirectCallback()
+      .then(() => nav('/', { replace: true }))
+      .catch((e) => setError((e as Error).message));
+  }, [nav]);
+  return <main className="page"><p className="empty">{error || 'Signing you in…'}</p></main>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

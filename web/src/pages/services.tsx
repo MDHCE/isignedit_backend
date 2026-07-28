@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Coming from './Coming';
+import { authEnabled, currentUser, selfServiceUrl } from '../auth';
 
 /** AI document generation — the Contract Intelligence service (Journey Ext. A). */
 export function Draft() {
@@ -62,14 +63,32 @@ export function Video() {
 
 /** Profile & identity — tiered assurance per Architecture §3.1. */
 export function Profile() {
+  const [who, setWho] = useState<string | null>(null);
+  useEffect(() => {
+    if (authEnabled) currentUser().then((u) => setWho(u ? `${u.profile.name ?? u.profile.email} (${u.profile.sub})` : null));
+  }, []);
   return (
     <Coming
       kicker="Profile"
       title="Your identity, at the right level"
       blurb="Accounts start with one-click social login. Identity proofing happens once, the first
         time a signature level legally requires it — then it is bound to your account for good."
+      demo={
+        <div className="card" style={{ margin: '24px 0 8px' }}>
+          <h3>Session</h3>
+          <div className="meta">
+            {!authEnabled && 'Dev mode — no identity provider configured (see SETUP-ZITADEL.md).'}
+            {authEnabled && (who ?? 'Not signed in.')}
+          </div>
+          {selfServiceUrl && (
+            <a className="btn ghost" style={{ marginTop: 12 }} href={selfServiceUrl} target="_blank" rel="noreferrer">
+              Manage passkeys &amp; MFA
+            </a>
+          )}
+        </div>
+      }
       items={[
-        { name: 'Sign in with Google / Apple / Microsoft', note: 'Keycloak brokering; e-mail + passkey fallback so no account depends on a third party.', tag: 'next up' },
+        { name: 'Sign in with Google / Apple / Microsoft', note: 'Zitadel federation; e-mail + passkey fallback so no account depends on a third party.', tag: 'wired — configure IdPs' },
         { name: 'Identity assurance level', note: 'Shows your current level (account-only → AdES-proofed → QES-qualified) and what each unlocks.' },
         { name: 'Identity proofing', note: 'eID / NFC passport / video-ident flow, run once at first qualified signature.' },
         { name: 'Visual signature', note: 'Draw or upload the handwritten signature that is printed on your certified copies — with your real signature.' },

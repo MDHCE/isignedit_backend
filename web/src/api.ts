@@ -51,50 +51,59 @@ export interface VerifyRecord {
   chainValid: boolean;
 }
 
+import { accessToken } from './auth';
+
+async function authedFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const token = await accessToken();
+  const headers = new Headers(init.headers);
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  return fetch(url, { ...init, headers });
+}
+
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error((await res.json().catch(() => ({})) as { error?: string }).error ?? res.statusText);
   return res.json() as Promise<T>;
 }
 
 export const api = {
-  listDocuments: () => fetch('/api/documents').then((r) => json<Doc[]>(r)),
-  getDocument: (id: string) => fetch(`/api/documents/${id}`).then((r) => json<DocDetail>(r)),
+  listDocuments: () => authedFetch('/api/documents').then((r) => json<Doc[]>(r)),
+  getDocument: (id: string) => authedFetch(`/api/documents/${id}`).then((r) => json<DocDetail>(r)),
   createDocument: (body: { title: string; tier: Doc['tier']; parties: { name: string; email: string }[] }) =>
-    fetch('/api/documents', {
+    authedFetch('/api/documents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }).then((r) => json<Doc>(r)),
   sign: (id: string, partyId: string) =>
-    fetch(`/api/documents/${id}/sign`, {
+    authedFetch(`/api/documents/${id}/sign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ partyId }),
     }).then((r) => json<Doc>(r)),
-  dispatch: (id: string) => fetch(`/api/documents/${id}/dispatch`, { method: 'POST' }).then((r) => json<Doc>(r)),
-  deliver: (id: string) => fetch(`/api/documents/${id}/deliver`, { method: 'POST' }).then((r) => json<Doc>(r)),
+  dispatch: (id: string) => authedFetch(`/api/documents/${id}/dispatch`, { method: 'POST' }).then((r) => json<Doc>(r)),
+  deliver: (id: string) => authedFetch(`/api/documents/${id}/deliver`, { method: 'POST' }).then((r) => json<Doc>(r)),
   verify: (code: string) => fetch(`/api/verify/${code}`).then((r) => json<VerifyRecord>(r)),
   track: (id: string) =>
-    fetch(`/api/documents/${id}/tracking`, {
+    authedFetch(`/api/documents/${id}/tracking`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     }).then((r) => json<DocDetail>(r)),
-  listBatches: () => fetch('/api/batches').then((r) => json<Batch[]>(r)),
+  listBatches: () => authedFetch('/api/batches').then((r) => json<Batch[]>(r)),
   createBatch: (body: { name: string; cadence: Batch['cadence']; recipient: Batch['recipient'] }) =>
-    fetch('/api/batches', {
+    authedFetch('/api/batches', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }).then((r) => json<Batch>(r)),
   addToBatch: (batchId: string, documentId: string) =>
-    fetch(`/api/batches/${batchId}/documents`, {
+    authedFetch(`/api/batches/${batchId}/documents`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ documentId }),
     }).then((r) => json<Batch>(r)),
   dispatchBatch: (batchId: string) =>
-    fetch(`/api/batches/${batchId}/dispatch`, { method: 'POST' }).then((r) => json<Batch>(r)),
+    authedFetch(`/api/batches/${batchId}/dispatch`, { method: 'POST' }).then((r) => json<Batch>(r)),
 };
 
 export const EVENT_LABELS: Record<string, string> = {

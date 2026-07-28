@@ -15,6 +15,8 @@ export interface Party {
 
 export interface SignedDocument {
   id: string;
+  /** Zitadel subject (or 'dev-user' in dev mode) of the initiator */
+  ownerId: string;
   /** public verification code, printed as QR on every copy */
   code: string;
   title: string;
@@ -66,6 +68,7 @@ export interface BatchShipment {
  */
 export interface DeliveryBatch {
   id: string;
+  ownerId: string;
   name: string;
   recipient: { name: string; email: string; address: string };
   cadence: BatchCadence;

@@ -28,7 +28,8 @@ Status legend: ✅ implemented (dev scaffold) · 🔲 placeholder in UI · 📋 
 | **Video session** booking (extra, per session) | 🔲 | web `/video` |
 | **Payment** — pay-per-use basket, checkout, invoices | 🔲 | web `/billing` |
 | **Address book** — contacts, addresses, identity status | 🔲 | web `/contacts` |
-| **Profile** — social login, assurance level, visual signature | 🔲 | web `/profile` |
+| **Profile** — social login, assurance level, visual signature | 🔲 | web `/profile` (live session box when auth on) |
+| **Authentication** — Zitadel OIDC: registration, Google/Apple/Microsoft, passkey MFA | ✅ wired | backend JWT validation + owner-scoped data; web PKCE sign-in; dev mode without config; IdP setup = SETUP-ZITADEL.md |
 
 ## Counterparty
 

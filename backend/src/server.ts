@@ -2,12 +2,26 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { randomUUID } from 'node:crypto';
 import * as store from './store.js';
+import { DEV_USER, authEnabled, authenticate } from './auth.js';
 import type { BatchCadence, DeliveryBatch, Party, SignedDocument, SignatureTier } from './types.js';
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
 
+// ---------- authentication (Zitadel OIDC; dev mode without ZITADEL_ISSUER) ----------
+app.decorateRequest('user');
+app.addHook('preHandler', async (req, reply) => {
+  req.user = DEV_USER;
+  if (!req.url.startsWith('/api/') || req.url.startsWith('/api/verify/') || req.url === '/api/config') {
+    return; // public surface
+  }
+  const user = await authenticate(req.headers.authorization);
+  if (!user) return reply.code(401).send({ error: 'authentication required' });
+  req.user = user;
+});
+
 app.get('/healthz', async () => ({ ok: true, service: 'isigned-backend' }));
+app.get('/api/config', async () => ({ authEnabled }));
 
 // ---------- documents ----------
 
@@ -24,6 +38,7 @@ app.post<{ Body: CreateBody }>('/api/documents', async (req, reply) => {
   }
   const doc: SignedDocument = {
     id: randomUUID(),
+    ownerId: req.user.id,
     code: store.newCode(),
     title,
     tier,
@@ -40,7 +55,7 @@ app.post<{ Body: CreateBody }>('/api/documents', async (req, reply) => {
   return reply.code(201).send(doc);
 });
 
-app.get('/api/documents', async () => store.allDocuments());
+app.get('/api/documents', async (req) => store.allDocuments(req.user.id));
 
 app.get<{ Params: { id: string } }>('/api/documents/:id', async (req, reply) => {
   const doc = store.findDocument(req.params.id);
@@ -154,7 +169,7 @@ interface BatchBody {
   cadence: BatchCadence;
 }
 
-app.get('/api/batches', async () => store.allBatches());
+app.get('/api/batches', async (req) => store.allBatches(req.user.id));
 
 app.post<{ Body: BatchBody }>('/api/batches', async (req, reply) => {
   const { name, recipient, cadence = 'weekly' } = req.body ?? ({} as BatchBody);
@@ -163,6 +178,7 @@ app.post<{ Body: BatchBody }>('/api/batches', async (req, reply) => {
   }
   const batch: DeliveryBatch = {
     id: randomUUID(),
+    ownerId: req.user.id,
     name,
     recipient,
     cadence,

@@ -23,9 +23,9 @@ export function load(): void {
   if (existsSync(DATA_FILE)) {
     const parsed = JSON.parse(readFileSync(DATA_FILE, 'utf8')) as Partial<Db>;
     db = {
-      documents: parsed.documents ?? [],
+      documents: (parsed.documents ?? []).map((d) => ({ ...d, ownerId: d.ownerId ?? 'dev-user' })),
       events: parsed.events ?? [],
-      batches: parsed.batches ?? [],
+      batches: (parsed.batches ?? []).map((b) => ({ ...b, ownerId: b.ownerId ?? 'dev-user' })),
     };
   }
 }
@@ -85,8 +85,10 @@ export function eventsFor(documentId: string): EvidenceEvent[] {
   return db.events.filter((e) => e.documentId === documentId);
 }
 
-export function allDocuments(): SignedDocument[] {
-  return [...db.documents].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+export function allDocuments(ownerId?: string): SignedDocument[] {
+  return db.documents
+    .filter((d) => !ownerId || d.ownerId === ownerId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function findDocument(id: string): SignedDocument | undefined {
@@ -112,8 +114,10 @@ export function newCode(): string {
   return `${pick(4)}-${pick(4)}`;
 }
 
-export function allBatches(): DeliveryBatch[] {
-  return [...db.batches].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+export function allBatches(ownerId?: string): DeliveryBatch[] {
+  return db.batches
+    .filter((b) => !ownerId || b.ownerId === ownerId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
 export function findBatch(id: string): DeliveryBatch | undefined {
