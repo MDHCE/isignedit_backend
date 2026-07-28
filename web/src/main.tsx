@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import NewDocument from './pages/NewDocument';
 import DocumentDetail from './pages/DocumentDetail';
 import Verify from './pages/Verify';
+import { Draft, Video, Profile, Billing, Contacts } from './pages/services';
 import './ui.css';
 
 function App() {
@@ -18,6 +19,11 @@ function App() {
           <NavLink to="/" end>Documents</NavLink>
           <NavLink to="/new">New document</NavLink>
           <NavLink to="/verify">Verify</NavLink>
+          <NavLink to="/draft">AI Draft</NavLink>
+          <NavLink to="/video">Video</NavLink>
+          <NavLink to="/contacts">Contacts</NavLink>
+          <NavLink to="/billing">Payment</NavLink>
+          <NavLink to="/profile">Profile</NavLink>
         </nav>
       </header>
       <Routes>
@@ -26,6 +32,11 @@ function App() {
         <Route path="/documents/:id" element={<DocumentDetail />} />
         <Route path="/verify" element={<Verify />} />
         <Route path="/v/:code" element={<Verify />} />
+        <Route path="/draft" element={<Draft />} />
+        <Route path="/video" element={<Video />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/billing" element={<Billing />} />
+        <Route path="/contacts" element={<Contacts />} />
       </Routes>
     </BrowserRouter>
   );

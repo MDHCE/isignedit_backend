@@ -181,14 +181,31 @@ function Verify() {
   );
 }
 
+const SERVICES: { name: string; note: string }[] = [
+  { name: 'Profile & identity', note: 'Social login, assurance level, visual signature' },
+  { name: 'Payment', note: 'Pay-per-use basket, methods, invoices' },
+  { name: 'Address book', note: 'Counterparties, delivery addresses, identity status' },
+  { name: 'AI document generation', note: 'Draft a contract from plain words — per contract' },
+  { name: 'Video sessions', note: 'Attorney-supervised signing, recorded & sealed' },
+];
+
 function Account() {
   return (
     <View>
       <Text style={s.h1}>Account</Text>
       <Text style={s.muted}>
-        Sign in with Google, Apple or Microsoft arrives with the identity backend (Keycloak brokering,
-        Architecture §3.1). This build talks to the dev API anonymously.
+        Sign in with Google, Apple or Microsoft arrives with the identity backend. This build talks
+        to the dev API anonymously.
       </Text>
+      {SERVICES.map((it) => (
+        <View key={it.name} style={s.card}>
+          <View style={[s.row, { marginTop: 0, justifyContent: 'space-between' }]}>
+            <Text style={s.cardTitle}>{it.name}</Text>
+            <Text style={[s.badge, { backgroundColor: '#eef1f6', color: INK.ink700 }]}>SOON</Text>
+          </View>
+          <Text style={[s.metaText, { marginTop: 4 }]}>{it.note}</Text>
+        </View>
+      ))}
     </View>
   );
 }
