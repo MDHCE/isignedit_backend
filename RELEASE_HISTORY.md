@@ -6,7 +6,7 @@ Repos: **backend** = MDHCE/isignedit_backend (this repo, incl. web) ·
 
 ## Backend + Web (this repo)
 
-### v0.6.0 — 2026-07-29 · `COMMIT_HASH`
+### v0.6.0 — 2026-07-29 · `c96b979`
 **Request:** *"Add API versioning for further compatibility. Prepare the mobile app and
 backend for WSS async communication, add features (login, device storage, token based
 sessions). Apple Pay / Android Pay, Stripe."*
