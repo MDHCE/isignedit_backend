@@ -3,7 +3,14 @@ import cors from '@fastify/cors';
 import { randomUUID } from 'node:crypto';
 import * as store from './store.js';
 import { DEV_USER, authEnabled, authenticate } from './auth.js';
+import { devRoles, requireRole } from './roles.js';
+import { journal, readJournal, verifyJournal } from './journal.js';
+import { chargesFor, recordSignatureCharge, toStripeInvoiceItem, usageSummary, PPS_PRICES } from './billing.js';
+import { createSigningProvider } from './signing/index.js';
+import { createHash } from 'node:crypto';
 import type { BatchCadence, DeliveryBatch, Party, SignedDocument, SignatureTier } from './types.js';
+
+const signingProvider = createSigningProvider();
 
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: true });
@@ -11,17 +18,41 @@ await app.register(cors, { origin: true });
 // ---------- authentication (Zitadel OIDC; dev mode without ZITADEL_ISSUER) ----------
 app.decorateRequest('user');
 app.addHook('preHandler', async (req, reply) => {
-  req.user = DEV_USER;
+  req.user = { ...DEV_USER, roles: devRoles(req.headers['x-dev-role'] as string | undefined) };
   if (!req.url.startsWith('/api/') || req.url.startsWith('/api/verify/') || req.url === '/api/config') {
     return; // public surface
   }
   const user = await authenticate(req.headers.authorization);
   if (!user) return reply.code(401).send({ error: 'authentication required' });
-  req.user = user;
+  req.user = authEnabled ? user : { ...user, roles: devRoles(req.headers['x-dev-role'] as string | undefined) };
 });
 
+// Solution-wide journal: every mutating API call, hash-chained (traceability & recovery).
+app.addHook('onResponse', async (req, reply) => {
+  if (req.method === 'GET' || req.method === 'OPTIONS' || !req.url.startsWith('/api/')) return;
+  const entityMatch = req.url.match(/\/api\/(?:documents|batches)\/([0-9a-f-]{36})/);
+  journal({
+    actor: req.user?.id ?? 'anonymous',
+    roles: req.user?.roles ?? [],
+    action: `${req.method} ${req.url}`,
+    entity: entityMatch?.[1],
+    status: reply.statusCode,
+    detail: typeof req.body === 'object' && req.body ? summarise(req.body as Record<string, unknown>) : undefined,
+  });
+});
+
+/** Journal payload summary — keys + scalar values, no deep document content. */
+function summarise(body: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(body)) {
+    out[k] = typeof v === 'object' && v !== null ? `[${Array.isArray(v) ? v.length + ' items' : 'object'}]` : v;
+  }
+  return out;
+}
+
 app.get('/healthz', async () => ({ ok: true, service: 'isigned-backend' }));
-app.get('/api/config', async () => ({ authEnabled }));
+app.get('/api/config', async () => ({ authEnabled, signingProvider: signingProvider.name, ppsPrices: PPS_PRICES }));
+app.get('/api/me', async (req) => ({ user: req.user, authEnabled }));
 
 // ---------- documents ----------
 
@@ -75,7 +106,23 @@ app.post<{ Params: { id: string }; Body: { partyId: string } }>(
     if (party.signedAt) return reply.code(409).send({ error: 'already signed' });
 
     party.signedAt = new Date().toISOString();
-    store.appendEvent(doc.id, 'SIGNED', party.name, { tier: doc.tier });
+    const digestHex = createHash('sha256')
+      .update(`${doc.id}:${doc.title}:${party.id}:${party.signedAt}`)
+      .digest('hex');
+    const sig = await signingProvider.sign({ digestHex, signerId: party.id, documentId: doc.id });
+    const charge = recordSignatureCharge({
+      ownerId: doc.ownerId,
+      documentId: doc.id,
+      documentCode: doc.code,
+      tier: doc.tier,
+      signerName: party.name,
+    });
+    store.appendEvent(doc.id, 'SIGNED', party.name, {
+      tier: doc.tier,
+      digest: digestHex,
+      signature: { provider: sig.provider, keyId: sig.keyId, algorithm: sig.algorithm, value: sig.signature },
+      ppsChargeId: charge.id,
+    });
 
     if (doc.parties.every((p) => p.signedAt)) {
       doc.status = 'signed';
@@ -89,6 +136,7 @@ app.post<{ Params: { id: string }; Body: { partyId: string } }>(
 // ---------- fulfilment (dev stub of the Print Station flow) ----------
 
 app.post<{ Params: { id: string } }>('/api/documents/:id/dispatch', async (req, reply) => {
+  if (!requireRole(req, reply, 'printer')) return;
   const doc = store.findDocument(req.params.id);
   if (!doc) return reply.code(404).send({ error: 'not found' });
   if (doc.status !== 'signed') {
@@ -115,6 +163,7 @@ app.post<{ Params: { id: string } }>('/api/documents/:id/dispatch', async (req, 
 app.post<{ Params: { id: string }; Body: { status?: string; location?: string } }>(
   '/api/documents/:id/tracking',
   async (req, reply) => {
+    if (!requireRole(req, reply, 'logistics')) return;
     const doc = store.findDocument(req.params.id);
     if (!doc) return reply.code(404).send({ error: 'not found' });
     if (!doc.trackingNumber) return reply.code(409).send({ error: 'not posted yet' });
@@ -128,6 +177,7 @@ app.post<{ Params: { id: string }; Body: { status?: string; location?: string } 
 );
 
 app.post<{ Params: { id: string } }>('/api/documents/:id/deliver', async (req, reply) => {
+  if (!requireRole(req, reply, 'logistics')) return;
   const doc = store.findDocument(req.params.id);
   if (!doc) return reply.code(404).send({ error: 'not found' });
   if (doc.status !== 'dispatched') {
@@ -233,6 +283,42 @@ app.post<{ Params: { id: string } }>('/api/batches/:id/dispatch', async (req, re
   batch.nextSendAt = advance(batch.cadence, new Date());
   store.saveBatch(batch);
   return batch;
+});
+
+// ---------- attorney ----------
+
+app.post<{ Params: { id: string }; Body: { opinion?: string } }>(
+  '/api/documents/:id/validate',
+  async (req, reply) => {
+    if (!requireRole(req, reply, 'attorney')) return;
+    const doc = store.findDocument(req.params.id);
+    if (!doc) return reply.code(404).send({ error: 'not found' });
+    store.appendEvent(doc.id, 'ATTORNEY_VALIDATED', req.user.name ?? req.user.id, {
+      opinion: req.body?.opinion ?? 'reviewed',
+    });
+    return { ...doc, events: store.eventsFor(doc.id) };
+  },
+);
+
+// ---------- billing (PPS — Pay Per Sign, Stripe-shaped) ----------
+
+app.get('/api/billing/usage', async (req) => usageSummary(req.user.id));
+
+app.get('/api/admin/billing', async (req, reply) => {
+  if (!requireRole(req, reply, 'administrator')) return;
+  return {
+    ...usageSummary(),
+    stripeInvoiceItems: chargesFor()
+      .filter((c) => c.stripeStatus === 'pending_invoice')
+      .map(toStripeInvoiceItem),
+  };
+});
+
+// ---------- admin: solution-wide journal ----------
+
+app.get<{ Querystring: { limit?: string } }>('/api/admin/journal', async (req, reply) => {
+  if (!requireRole(req, reply, 'administrator')) return;
+  return { integrity: verifyJournal(), entries: readJournal(Number(req.query.limit ?? 100)) };
 });
 
 // ---------- boot ----------

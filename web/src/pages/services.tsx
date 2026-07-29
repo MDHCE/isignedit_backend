@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Coming from './Coming';
 import { authEnabled, currentUser, selfServiceUrl } from '../auth';
+import { api, type PpsUsage } from '../api';
 
 /** AI document generation — the Contract Intelligence service (Journey Ext. A). */
 export function Draft() {
@@ -98,8 +99,12 @@ export function Profile() {
   );
 }
 
-/** Payment — pure pay-per-use, no subscription. */
+/** Payment — pure pay-per-use, no subscription. PPS usage is live. */
 export function Billing() {
+  const [usage, setUsage] = useState<PpsUsage | null>(null);
+  useEffect(() => {
+    api.usage().then(setUsage).catch(() => setUsage(null));
+  }, []);
   return (
     <Coming
       kicker="Payment"
@@ -107,8 +112,43 @@ export function Billing() {
       blurb="Each document is a small basket: signatures, certified copies, and any extras it
         needs. One payment at checkout; production starts when it clears. No subscription,
         no seats."
+      demo={
+        usage && (
+          <div className="card" style={{ margin: '24px 0 8px' }}>
+            <div className="row spread">
+              <h3>Your PPS usage — Pay Per Sign</h3>
+              <span className="badge tier">
+                {usage.count} signatures · €{(usage.totalCents / 100).toFixed(2)}
+              </span>
+            </div>
+            <div className="timeline">
+              {usage.charges.slice(0, 8).map((c) => (
+                <div className="tl-item" key={c.id}>
+                  <div className="tl-dot" />
+                  <div style={{ flex: 1 }}>
+                    <b>
+                      {c.tier} signature — {c.signerName}
+                    </b>
+                    <span>
+                      {c.documentCode} · {new Date(c.at).toLocaleString()} · {c.stripeStatus.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <b style={{ fontSize: 13.5 }}>€{(c.amountCents / 100).toFixed(2)}</b>
+                </div>
+              ))}
+              {usage.count === 0 && <div className="meta">No signatures billed yet.</div>}
+            </div>
+            <div className="meta" style={{ marginTop: 10 }}>
+              Charges accrue per signature and are invoiced via Stripe (pending items export
+              1:1 to stripe.invoiceItems.create).
+            </div>
+          </div>
+        )
+      }
       items={[
-        { name: 'Basket & checkout', note: 'Price events accrue per document (signatures per party/tier, copies per recipient, extras à la carte).', tag: 'next up' },
+        { name: 'PPS — Pay Per Sign', note: 'Live: every signature is metered by tier (SES/AdES/QES) and queued as a Stripe invoice item.', tag: 'live' },
+        { name: 'Stripe invoicing', note: 'Pending charges export 1:1 to stripe.invoiceItems.create; monthly invoice job next.', tag: 'next up' },
+        { name: 'Basket & checkout', note: 'Price events accrue per document (signatures per party/tier, copies per recipient, extras à la carte).' },
         { name: 'Payment methods', note: 'Card + SEPA via payment provider; per-country pricing with VAT handling.' },
         { name: 'Receipts & invoices', note: 'Per-document invoices; company billing profiles for B2B.' },
         { name: 'Founding rates', note: 'Early-access members lock launch pricing (per the landing-page promise).' },

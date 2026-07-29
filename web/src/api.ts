@@ -104,7 +104,24 @@ export const api = {
     }).then((r) => json<Batch>(r)),
   dispatchBatch: (batchId: string) =>
     authedFetch(`/api/batches/${batchId}/dispatch`, { method: 'POST' }).then((r) => json<Batch>(r)),
+  usage: () => authedFetch('/api/billing/usage').then((r) => json<PpsUsage>(r)),
 };
+
+export interface PpsUsage {
+  count: number;
+  totalCents: number;
+  currency: 'eur';
+  byTier: Record<string, { count: number; cents: number }>;
+  charges: {
+    id: string;
+    documentCode: string;
+    tier: string;
+    signerName: string;
+    amountCents: number;
+    at: string;
+    stripeStatus: string;
+  }[];
+}
 
 export const EVENT_LABELS: Record<string, string> = {
   CREATED: 'Document created',

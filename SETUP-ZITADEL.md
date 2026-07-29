@@ -37,7 +37,24 @@ ZITADEL_CLIENT_ID=<client-id>        # optional audience check
 Restart both; the topbar shows **Sign in**, the API returns 401 without a token,
 and every document/batch is scoped to its owner (Zitadel `sub`).
 
-## 4. Social identity providers
+## 4. Branding + roles (automated)
+
+Create a service user with **Org Owner** + a Personal Access Token, then:
+
+```bash
+ZITADEL_ISSUER=https://<your-instance> ZITADEL_PAT=<token> node zitadel/provision.mjs
+```
+
+This applies the **iSigned.it appearance** (ink-blue label policy + the wordmark
+logo for light and dark login pages, watermark off) and creates the project
+`isigned` with the platform roles: `administrator`, `printer`, `logistics`,
+`attorney`, `user`. Then in the app's token settings tick **"Assert roles on
+authentication"** so tokens carry `urn:zitadel:iam:org:project:roles` — the
+backend maps them automatically; grant roles under Project → Authorizations.
+Dev mode without Zitadel: all roles are granted; narrow with an `X-Dev-Role`
+header (e.g. `X-Dev-Role: user`) to test the guards.
+
+## 5. Social identity providers
 
 Console → Settings → **Identity Providers**:
 
@@ -51,7 +68,7 @@ Enable each IdP for your organization and tick **auto-register** so social sign-
 creates the account on first use (the tiered-assurance model: this is *account
 access only* — identity proofing comes at first qualified signature).
 
-## 5. MFA & passkeys
+## 6. MFA & passkeys
 
 Console → Settings → **Login Behaviour and Security**:
 - Passwordless/passkeys: **allowed** (WebAuthn/FIDO2 — primary factor)
@@ -60,7 +77,7 @@ Console → Settings → **Login Behaviour and Security**:
 - Users self-manage factors at `<issuer>/ui/console/users/me` — linked from the
   app's Profile page.
 
-## 6. What's still deliberately open
+## 7. What's still deliberately open
 
 - Guest signing links (counterparties without accounts) — separate token flow, not Zitadel sessions
 - Identity proofing (eID / video-ident) at AdES/QES — separate RA flow per Architecture §3.2

@@ -39,7 +39,8 @@ export type EventType =
   | 'TRACKING_UPDATE'
   | 'DELIVERED'
   | 'BATCH_ADDED'
-  | 'BATCH_DISPATCHED';
+  | 'BATCH_DISPATCHED'
+  | 'ATTORNEY_VALIDATED';
 
 /** One link of the hash-chained evidence ledger (Architecture §3.1). */
 export interface EvidenceEvent {
