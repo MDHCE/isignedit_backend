@@ -10,7 +10,9 @@ services:
     container_name: isigned-app-backend
     restart: unless-stopped
     environment:
-      ZITADEL_ISSUER: https://auth.isigned.it
+      # leave ZITADEL_PUBLIC_ISSUER unset until the Zitadel org+app are provisioned,
+      # then set it to https://auth.isigned.it in .env and re-up
+      ZITADEL_ISSUER: ${ZITADEL_PUBLIC_ISSUER:-}
       ZITADEL_INTERNAL_URL: http://isigned-auth:8080
       ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID:-}
       HSM_PROVIDER: ${HSM_PROVIDER:-dev}
@@ -36,7 +38,7 @@ services:
     build:
       context: ./web
       args:
-        VITE_ZITADEL_ISSUER: https://auth.isigned.it
+        VITE_ZITADEL_ISSUER: ${ZITADEL_PUBLIC_ISSUER:-}
         VITE_ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID:-}
     image: isigned-webapp:latest
     container_name: isigned-app-web
@@ -59,7 +61,7 @@ services:
     image: ghcr.io/zitadel/zitadel:v2.65.1
     container_name: isigned-auth
     restart: unless-stopped
-    command: 'start --masterkeyFromEnv --tlsMode external'
+    command: 'start-from-init --masterkeyFromEnv --tlsMode external'
     environment:
       ZITADEL_MASTERKEY: ${ZITADEL_MASTERKEY:?set in .env — 32 chars}
       ZITADEL_DATABASE_POSTGRES_HOST: zitadel-db
@@ -74,6 +76,10 @@ services:
       ZITADEL_EXTERNALDOMAIN: auth.isigned.it
       ZITADEL_EXTERNALPORT: 443
       ZITADEL_EXTERNALSECURE: 'true'
+      ZITADEL_FIRSTINSTANCE_ORG_NAME: iSigned.it
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: isigned-admin
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${ZITADEL_ADMIN_PASSWORD:?set in .env}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: 'true'
     depends_on:
       zitadel-db:
         condition: service_healthy
