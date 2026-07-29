@@ -79,6 +79,19 @@ Status legend: ✅ implemented (dev scaffold) · 🔲 placeholder in UI · 📋 
 | Retention & GDPR deletion schedules | 📋 |
 | Jurisdiction workflow configuration | 📋 Stage 2 |
 
+## Infrastructure & Resilience (decided 2026-07-29 — see TODO.md)
+
+| Feature | Status |
+|---|---|
+| DoS protection — Cloudflare edge (L3/4+L7, WAF, per-surface rate limits) | 📋 Phase A |
+| Origin hiding — Cloudflare Tunnel, no open ports on the host | 📋 Phase A |
+| Zero Trust access on Zitadel admin console; Turnstile on public forms | 📋 Phase A |
+| Encrypted offsite backups (S3 EU) | 📋 Phase A |
+| Geo-redundancy — AWS EU active-passive (Frankfurt + Milan), CF Load Balancing failover | 📋 Phase B |
+| Evidence journal & documents on S3 Object Lock (WORM) + cross-region replication | 📋 Phase B |
+| Quarterly failover/restore drills with written log | 📋 Phase B |
+| EU-only edge processing (CF Regional Services); ETSI/DORA-grade tested RTO/RPO | 📋 Phase C |
+
 ## Cross-cutting placeholders now visible in the apps
 
 Web top nav: **AI Draft · Video · Contacts · Payment · Profile** — each a real route with

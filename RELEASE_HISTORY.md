@@ -6,6 +6,14 @@ Repos: **backend** = MDHCE/isignedit_backend (this repo, incl. web) ·
 
 ## Backend + Web (this repo)
 
+### v0.6.1 — 2026-07-29 · `COMMIT_HASH`
+**Request:** *"I will need DoS protection and geo-redundancy, might be Cloudflare and
+Amazon. Recommend best practices."* → *"Add to documentation as a todo and add to the features."*
+- `TODO.md`: phased plan — Cloudflare edge (tunnel, WAF, rate limits, Zero Trust, Turnstile)
+  → AWS EU active-passive (Frankfurt+Milan, S3 WORM, RDS replica, CF Load Balancing)
+  → QTSP-grade tested DR; Shield Advanced and active-active writes explicitly deferred
+- `FEATURES.md`: Infrastructure & Resilience section (Phase A/B/C status rows)
+
 ### v0.6.0 — 2026-07-29 · `c96b979`
 **Request:** *"Add API versioning for further compatibility. Prepare the mobile app and
 backend for WSS async communication, add features (login, device storage, token based
