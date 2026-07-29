@@ -6,7 +6,7 @@ Repos: **backend** = MDHCE/isignedit_backend (this repo, incl. web) ·
 
 ## Backend + Web (this repo)
 
-### v0.5.0 — 2026-07-29 · `COMMIT_HASH`
+### v0.5.0 — 2026-07-29 · `d97092d`
 **Request:** *"I want to keep everything in Docker, also Zitadel."*
 - Backend Dockerfile (multi-stage TS build, node:22-alpine, healthcheck, data volume)
 - Web Dockerfile (Vite build → nginx, /api proxied to the backend service)
