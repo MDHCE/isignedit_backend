@@ -6,6 +6,15 @@ Repos: **backend** = MDHCE/isignedit_backend (this repo, incl. web) ·
 
 ## Backend + Web (this repo)
 
+### v0.6.2 — 2026-07-29 · `812efc9` (+ website `ff16a72`)
+**Request:** *"Update the landing page accordingly. Add the login, deploy the containers."*
+- Landing page: "Log in" → app.isigned.it (nav + footer), deployed
+- Prod compose: auth env-gated (`ZITADEL_PUBLIC_ISSUER`), Zitadel `start-from-init`
+  with first-instance admin from `.env`
+- **Deployed to newton**: isigned-app-backend / isigned-app-web / isigned-auth (Zitadel)
+  / isigned-auth-db behind Traefik — routing verified for app./api./auth.isigned.it;
+  TLS pending the three DNS A records → 109.122.218.176
+
 ### v0.6.1 — 2026-07-29 · `f848907`
 **Request:** *"I will need DoS protection and geo-redundancy, might be Cloudflare and
 Amazon. Recommend best practices."* → *"Add to documentation as a todo and add to the features."*
