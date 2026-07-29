@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import websocket from '@fastify/websocket';
 import { randomUUID } from 'node:crypto';
 import * as store from './store.js';
 import { DEV_USER, authEnabled, authenticate } from './auth.js';
@@ -7,19 +8,32 @@ import { devRoles, requireRole } from './roles.js';
 import { journal, readJournal, verifyJournal } from './journal.js';
 import { chargesFor, recordSignatureCharge, toStripeInvoiceItem, usageSummary, PPS_PRICES } from './billing.js';
 import { createSigningProvider } from './signing/index.js';
+import { addClient, connectionCount, push } from './ws.js';
+import { createIntentForPending, handleWebhook, paymentsConfig } from './payments.js';
 import { createHash } from 'node:crypto';
 import type { BatchCadence, DeliveryBatch, Party, SignedDocument, SignatureTier } from './types.js';
 
 const signingProvider = createSigningProvider();
 
-const app = Fastify({ logger: true });
+/**
+ * API versioning: /api/v1/* is the stable contract; bare /api/* remains as a
+ * deprecated alias for existing clients. New versions mount as v2 rewrites
+ * with their own handlers where behaviour diverges.
+ */
+const app = Fastify({
+  logger: true,
+  rewriteUrl(req) {
+    return req.url?.startsWith('/api/v1/') ? req.url.replace('/api/v1/', '/api/') : (req.url ?? '/');
+  },
+});
 await app.register(cors, { origin: true });
+await app.register(websocket);
 
 // ---------- authentication (Zitadel OIDC; dev mode without ZITADEL_ISSUER) ----------
 app.decorateRequest('user');
 app.addHook('preHandler', async (req, reply) => {
   req.user = { ...DEV_USER, roles: devRoles(req.headers['x-dev-role'] as string | undefined) };
-  if (!req.url.startsWith('/api/') || req.url.startsWith('/api/verify/') || req.url === '/api/config') {
+  if (!req.url.startsWith('/api/') || req.url.startsWith('/api/verify/') || req.url === '/api/config' || req.url === '/api/payments/webhook' || req.url.startsWith('/api/ws')) {
     return; // public surface
   }
   const user = await authenticate(req.headers.authorization);
@@ -51,7 +65,14 @@ function summarise(body: Record<string, unknown>): Record<string, unknown> {
 }
 
 app.get('/healthz', async () => ({ ok: true, service: 'isigned-backend' }));
-app.get('/api/config', async () => ({ authEnabled, signingProvider: signingProvider.name, ppsPrices: PPS_PRICES }));
+app.get('/api/config', async () => ({
+  apiVersion: 'v1',
+  authEnabled,
+  signingProvider: signingProvider.name,
+  ppsPrices: PPS_PRICES,
+  payments: paymentsConfig(),
+  wsClients: connectionCount(),
+}));
 app.get('/api/me', async (req) => ({ user: req.user, authEnabled }));
 
 // ---------- documents ----------
@@ -80,6 +101,7 @@ app.post<{ Body: CreateBody }>('/api/documents', async (req, reply) => {
   };
   store.saveDocument(doc);
   store.appendEvent(doc.id, 'CREATED', 'initiator', { title, tier });
+  push(doc.ownerId, { type: 'document', action: 'CREATED', data: { id: doc.id, code: doc.code, status: doc.status } });
   for (const p of doc.parties) {
     store.appendEvent(doc.id, 'PARTY_INVITED', 'platform', { party: p.name, email: p.email });
   }
@@ -129,6 +151,7 @@ app.post<{ Params: { id: string }; Body: { partyId: string } }>(
       store.appendEvent(doc.id, 'ALL_SIGNED', 'platform', { parties: doc.parties.length });
     }
     store.saveDocument(doc);
+    push(doc.ownerId, { type: 'document', action: 'SIGNED', data: { id: doc.id, code: doc.code, status: doc.status, signer: party.name } });
     return doc;
   },
 );
@@ -156,6 +179,7 @@ app.post<{ Params: { id: string } }>('/api/documents/:id/dispatch', async (req, 
     location: 'Milano sorting centre',
   });
   store.saveDocument(doc);
+  push(doc.ownerId, { type: 'document', action: 'PRINT_DISPATCHED', data: { id: doc.id, code: doc.code, status: doc.status, trackingNumber: doc.trackingNumber } });
   return doc;
 });
 
@@ -172,6 +196,7 @@ app.post<{ Params: { id: string }; Body: { status?: string; location?: string } 
       status: req.body?.status ?? 'in transit',
       location: req.body?.location ?? 'en route',
     });
+    push(doc.ownerId, { type: 'document', action: 'TRACKING_UPDATE', data: { id: doc.id, code: doc.code, trackingNumber: doc.trackingNumber } });
     return { ...doc, events: store.eventsFor(doc.id) };
   },
 );
@@ -186,6 +211,7 @@ app.post<{ Params: { id: string } }>('/api/documents/:id/deliver', async (req, r
   doc.status = 'delivered';
   store.appendEvent(doc.id, 'DELIVERED', 'carrier', { proof: 'signature-on-receipt' });
   store.saveDocument(doc);
+  push(doc.ownerId, { type: 'document', action: 'DELIVERED', data: { id: doc.id, code: doc.code, status: doc.status } });
   return doc;
 });
 
@@ -282,6 +308,7 @@ app.post<{ Params: { id: string } }>('/api/batches/:id/dispatch', async (req, re
   batch.documentIds = [];
   batch.nextSendAt = advance(batch.cadence, new Date());
   store.saveBatch(batch);
+  push(batch.ownerId, { type: 'batch', action: 'BATCH_DISPATCHED', data: { id: batch.id, name: batch.name, trackingNumber } });
   return batch;
 });
 
@@ -319,6 +346,34 @@ app.get('/api/admin/billing', async (req, reply) => {
 app.get<{ Querystring: { limit?: string } }>('/api/admin/journal', async (req, reply) => {
   if (!requireRole(req, reply, 'administrator')) return;
   return { integrity: verifyJournal(), entries: readJournal(Number(req.query.limit ?? 100)) };
+});
+
+// ---------- WSS async channel ----------
+
+app.get<{ Querystring: { token?: string } }>('/api/ws', { websocket: true }, async (socket, req) => {
+  const user = await authenticate(req.query.token ? `Bearer ${req.query.token}` : undefined);
+  if (!user) {
+    socket.close(4401, 'authentication required');
+    return;
+  }
+  addClient(socket, user.id);
+});
+
+// ---------- payments (Stripe · Apple Pay / Google Pay via PaymentIntent) ----------
+
+app.get('/api/payments/config', async () => paymentsConfig());
+
+app.post('/api/payments/intent', async (req, reply) => {
+  const intent = await createIntentForPending(req.user.id);
+  if (!intent) return reply.code(409).send({ error: 'no pending charges' });
+  push(req.user.id, { type: 'payment', action: intent.status.toUpperCase(), data: { paymentIntentId: intent.paymentIntentId, amountCents: intent.amountCents } });
+  return intent;
+});
+
+app.post('/api/payments/webhook', { config: { rawBody: true } }, async (req, reply) => {
+  const result = handleWebhook(JSON.stringify(req.body ?? {}), req.headers['stripe-signature'] as string | undefined);
+  if (!result.ok) return reply.code(400).send(result);
+  return result;
 });
 
 // ---------- boot ----------

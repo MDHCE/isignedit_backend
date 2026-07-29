@@ -25,8 +25,10 @@ export interface PpsCharge {
   amountCents: number;
   currency: 'eur';
   at: string;
-  stripeStatus: 'pending_invoice' | 'invoiced';
+  stripeStatus: 'pending_invoice' | 'invoiced' | 'processing' | 'paid' | 'paid_dev';
   stripeInvoiceItemId: string | null;
+  paymentIntentId?: string | null;
+  paidAt?: string | null;
 }
 
 /** Per-signature price by tier (cents). Override: PPS_PRICE_SES=150 etc. */
@@ -90,6 +92,23 @@ export function usageSummary(ownerId?: string) {
     byTier[c.tier].cents += c.amountCents;
   }
   return { charges: list, count: list.length, totalCents, byTier, currency: 'eur' as const };
+}
+
+export function markCharges(
+  ids: string[],
+  status: PpsCharge['stripeStatus'],
+  paymentIntentId?: string,
+): void {
+  ensureLoaded();
+  const now = new Date().toISOString();
+  for (const c of charges) {
+    if (ids.includes(c.id)) {
+      c.stripeStatus = status;
+      if (paymentIntentId) c.paymentIntentId = paymentIntentId;
+      if (status === 'paid' || status === 'paid_dev') c.paidAt = now;
+    }
+  }
+  persist();
 }
 
 /** Shape for stripe.invoiceItems.create — the future invoicing job maps 1:1. */

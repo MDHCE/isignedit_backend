@@ -102,9 +102,23 @@ export function Profile() {
 /** Payment — pure pay-per-use, no subscription. PPS usage is live. */
 export function Billing() {
   const [usage, setUsage] = useState<PpsUsage | null>(null);
+  const [payMsg, setPayMsg] = useState('');
+  const reload = () => api.usage().then(setUsage).catch(() => setUsage(null));
   useEffect(() => {
-    api.usage().then(setUsage).catch(() => setUsage(null));
+    reload();
   }, []);
+  const pay = () =>
+    api
+      .payPending()
+      .then((i) => {
+        setPayMsg(
+          i.simulated
+            ? `Paid €${(i.amountCents / 100).toFixed(2)} (simulated — Apple Pay / Google Pay appear via Stripe payment sheet once keys are set)`
+            : `PaymentIntent ${i.paymentIntentId} — complete in the payment sheet`,
+        );
+        reload();
+      })
+      .catch((e) => setPayMsg((e as Error).message));
   return (
     <Coming
       kicker="Payment"
@@ -138,9 +152,15 @@ export function Billing() {
               ))}
               {usage.count === 0 && <div className="meta">No signatures billed yet.</div>}
             </div>
+            <div className="row" style={{ marginTop: 12 }}>
+              <button className="btn" onClick={pay} disabled={!usage.charges.some((c) => c.stripeStatus === 'pending_invoice')}>
+                Pay pending —  Pay / G Pay / card
+              </button>
+              {payMsg && <span className="meta">{payMsg}</span>}
+            </div>
             <div className="meta" style={{ marginTop: 10 }}>
-              Charges accrue per signature and are invoiced via Stripe (pending items export
-              1:1 to stripe.invoiceItems.create).
+              Charges accrue per signature; payment runs on Stripe PaymentIntents (Apple Pay and
+              Google Pay enabled via automatic payment methods).
             </div>
           </div>
         )

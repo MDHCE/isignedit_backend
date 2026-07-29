@@ -30,6 +30,10 @@ Status legend: ✅ implemented (dev scaffold) · 🔲 placeholder in UI · 📋 
 | **Address book** — contacts, addresses, identity status | 🔲 | web `/contacts` |
 | **Profile** — social login, assurance level, visual signature | 🔲 | web `/profile` (live session box when auth on) |
 | **Authentication** — Zitadel OIDC: registration, Google/Apple/Microsoft, passkey MFA | ✅ wired | backend JWT validation + owner-scoped data; web PKCE sign-in; dev mode without config; IdP setup = SETUP-ZITADEL.md |
+| **API versioning** | ✅ | `/api/v1/*` stable contract; bare `/api/*` deprecated alias |
+| **WSS async channel** | ✅ | `/api/v1/ws` — owner-scoped live push (document/batch/payment events), heartbeat; mobile live indicator |
+| **Mobile sessions** — login, device secure storage, token refresh | ✅ | expo-secure-store (Keychain/Keystore), Zitadel PKCE via expo-auth-session, dev-session fallback |
+| **Payments** — Stripe PaymentIntents, Apple Pay / Google Pay | ✅ wired | `/api/v1/payments/*`; simulated without keys; webhook signature verification; pay buttons web + mobile |
 
 ## Counterparty
 

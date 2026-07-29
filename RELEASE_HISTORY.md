@@ -6,6 +6,19 @@ Repos: **backend** = MDHCE/isignedit_backend (this repo, incl. web) ·
 
 ## Backend + Web (this repo)
 
+### v0.6.0 — 2026-07-29 · `COMMIT_HASH`
+**Request:** *"Add API versioning for further compatibility. Prepare the mobile app and
+backend for WSS async communication, add features (login, device storage, token based
+sessions). Apple Pay / Android Pay, Stripe."*
+- `/api/v1/*` as the stable versioned contract (Fastify rewriteUrl; `/api/*` = deprecated alias)
+- WSS channel `/api/v1/ws`: owner-scoped push of document/batch/payment events, heartbeats,
+  token auth; live events emitted from create/sign/dispatch/tracking/deliver/batch
+- Mobile v0.2.0: token sessions in device secure storage (expo-secure-store), Zitadel PKCE
+  login (expo-auth-session) with dev-session fallback, live WS indicator, pay flow
+- Stripe payments: PaymentIntents with automatic payment methods (= Apple Pay / Google Pay
+  sheets), simulated mode without keys, webhook with signature verification, PPS charges
+  settle to paid/paid_dev; pay buttons in web Payment page and mobile Account
+
 ### v0.5.0 — 2026-07-29 · `d97092d`
 **Request:** *"I want to keep everything in Docker, also Zitadel."*
 - Backend Dockerfile (multi-stage TS build, node:22-alpine, healthcheck, data volume)

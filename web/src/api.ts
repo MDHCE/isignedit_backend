@@ -53,6 +53,9 @@ export interface VerifyRecord {
 
 import { accessToken } from './auth';
 
+/** Versioned API — /api/v1 is the stable contract (bare /api = deprecated alias). */
+const API = '/api/v1';
+
 async function authedFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const token = await accessToken();
   const headers = new Headers(init.headers);
@@ -66,45 +69,49 @@ async function json<T>(res: Response): Promise<T> {
 }
 
 export const api = {
-  listDocuments: () => authedFetch('/api/documents').then((r) => json<Doc[]>(r)),
-  getDocument: (id: string) => authedFetch(`/api/documents/${id}`).then((r) => json<DocDetail>(r)),
+  listDocuments: () => authedFetch(`${API}/documents`).then((r) => json<Doc[]>(r)),
+  getDocument: (id: string) => authedFetch(`${API}/documents/${id}`).then((r) => json<DocDetail>(r)),
   createDocument: (body: { title: string; tier: Doc['tier']; parties: { name: string; email: string }[] }) =>
-    authedFetch('/api/documents', {
+    authedFetch(`${API}/documents`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }).then((r) => json<Doc>(r)),
   sign: (id: string, partyId: string) =>
-    authedFetch(`/api/documents/${id}/sign`, {
+    authedFetch(`${API}/documents/${id}/sign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ partyId }),
     }).then((r) => json<Doc>(r)),
-  dispatch: (id: string) => authedFetch(`/api/documents/${id}/dispatch`, { method: 'POST' }).then((r) => json<Doc>(r)),
-  deliver: (id: string) => authedFetch(`/api/documents/${id}/deliver`, { method: 'POST' }).then((r) => json<Doc>(r)),
-  verify: (code: string) => fetch(`/api/verify/${code}`).then((r) => json<VerifyRecord>(r)),
+  dispatch: (id: string) => authedFetch(`${API}/documents/${id}/dispatch`, { method: 'POST' }).then((r) => json<Doc>(r)),
+  deliver: (id: string) => authedFetch(`${API}/documents/${id}/deliver`, { method: 'POST' }).then((r) => json<Doc>(r)),
+  verify: (code: string) => fetch(`${API}/verify/${code}`).then((r) => json<VerifyRecord>(r)),
   track: (id: string) =>
-    authedFetch(`/api/documents/${id}/tracking`, {
+    authedFetch(`${API}/documents/${id}/tracking`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     }).then((r) => json<DocDetail>(r)),
-  listBatches: () => authedFetch('/api/batches').then((r) => json<Batch[]>(r)),
+  listBatches: () => authedFetch(`${API}/batches`).then((r) => json<Batch[]>(r)),
   createBatch: (body: { name: string; cadence: Batch['cadence']; recipient: Batch['recipient'] }) =>
-    authedFetch('/api/batches', {
+    authedFetch(`${API}/batches`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }).then((r) => json<Batch>(r)),
   addToBatch: (batchId: string, documentId: string) =>
-    authedFetch(`/api/batches/${batchId}/documents`, {
+    authedFetch(`${API}/batches/${batchId}/documents`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ documentId }),
     }).then((r) => json<Batch>(r)),
   dispatchBatch: (batchId: string) =>
-    authedFetch(`/api/batches/${batchId}/dispatch`, { method: 'POST' }).then((r) => json<Batch>(r)),
-  usage: () => authedFetch('/api/billing/usage').then((r) => json<PpsUsage>(r)),
+    authedFetch(`${API}/batches/${batchId}/dispatch`, { method: 'POST' }).then((r) => json<Batch>(r)),
+  usage: () => authedFetch(`${API}/billing/usage`).then((r) => json<PpsUsage>(r)),
+  payPending: () =>
+    authedFetch(`${API}/payments/intent`, { method: 'POST' }).then((r) =>
+      json<{ simulated: boolean; amountCents: number; status: string; paymentIntentId: string }>(r),
+    ),
 };
 
 export interface PpsUsage {
