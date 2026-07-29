@@ -1,0 +1,86 @@
+# iSigned.it — full stack in Docker: Zitadel (+Postgres), backend API, web app.
+#
+#   docker compose up -d --build
+#   web:      http://localhost:8081
+#   API:      http://localhost:4820
+#   Zitadel:  http://localhost:8080/ui/console  (zitadel-admin@zitadel.localhost / Password1!)
+#
+# Auth starts DISABLED (dev mode). After provisioning Zitadel
+# (SETUP-ZITADEL.md + zitadel/provision.mjs), put the client id into .env:
+#   ZITADEL_CLIENT_ID=<id>   → docker compose up -d --build
+services:
+  backend:
+    build: ./backend
+    container_name: isigned-backend
+    restart: unless-stopped
+    environment:
+      # uncomment to enable auth after provisioning (see .env support below)
+      ZITADEL_ISSUER: ${ZITADEL_ISSUER:-}
+      ZITADEL_INTERNAL_URL: ${ZITADEL_INTERNAL_URL:-http://zitadel:8080}
+      ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID:-}
+      HSM_PROVIDER: ${HSM_PROVIDER:-dev}
+      SECUROSYS_TSB_URL: ${SECUROSYS_TSB_URL:-}
+      SECUROSYS_API_KEY: ${SECUROSYS_API_KEY:-}
+    volumes:
+      - backend-data:/app/data
+    ports:
+      - '4820:4820'
+    depends_on:
+      - zitadel
+
+  web:
+    build:
+      context: ./web
+      args:
+        VITE_ZITADEL_ISSUER: ${ZITADEL_ISSUER:-}
+        VITE_ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID:-}
+    container_name: isigned-web
+    restart: unless-stopped
+    ports:
+      - '8081:80'
+    depends_on:
+      - backend
+
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:v2.65.1
+    container_name: isigned-zitadel
+    restart: unless-stopped
+    command: 'start-dev --masterkeyFromEnv --tlsMode disabled'
+    environment:
+      ZITADEL_MASTERKEY: 'MasterkeyNeedsToHave32Characters!'
+      ZITADEL_DATABASE_POSTGRES_HOST: zitadel-db
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: postgres
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: postgres
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+      ZITADEL_EXTERNALDOMAIN: localhost
+      ZITADEL_EXTERNALPORT: 8080
+      ZITADEL_EXTERNALSECURE: 'false'
+    depends_on:
+      zitadel-db:
+        condition: service_healthy
+    ports:
+      - '8080:8080'
+
+  zitadel-db:
+    image: postgres:16-alpine
+    container_name: isigned-zitadel-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - zitadel-db:/var/lib/postgresql/data
+
+volumes:
+  backend-data:
+  zitadel-db:

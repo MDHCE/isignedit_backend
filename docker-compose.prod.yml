@@ -1,0 +1,117 @@
+# Production stack for newton (behind the shared Traefik, letsencrypt HTTP-01).
+# Same pattern as the website. Requires DNS: app.isigned.it, api.isigned.it,
+# auth.isigned.it → newton. Deploy:
+#   rsync -az -e "ssh -p 2022" --exclude .git --exclude '*/node_modules' ./ daniel@newton.industreal.tech:~/isignedit_app/
+#   ssh -p 2022 daniel@newton.industreal.tech "cd ~/isignedit_app && docker compose -f docker-compose.prod.yml up -d --build"
+services:
+  backend:
+    build: ./backend
+    image: isigned-backend:latest
+    container_name: isigned-app-backend
+    restart: unless-stopped
+    environment:
+      ZITADEL_ISSUER: https://auth.isigned.it
+      ZITADEL_INTERNAL_URL: http://isigned-auth:8080
+      ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID:-}
+      HSM_PROVIDER: ${HSM_PROVIDER:-dev}
+      SECUROSYS_TSB_URL: ${SECUROSYS_TSB_URL:-}
+      SECUROSYS_API_KEY: ${SECUROSYS_API_KEY:-}
+    volumes:
+      - backend-data:/app/data
+    networks: [industreal_net]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=industreal_industreal_net"
+      - "traefik.http.routers.isigned-api-http.rule=Host(`api.isigned.it`)"
+      - "traefik.http.routers.isigned-api-http.entrypoints=web"
+      - "traefik.http.routers.isigned-api-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.isigned-api-http.service=isigned-api"
+      - "traefik.http.routers.isigned-api.rule=Host(`api.isigned.it`)"
+      - "traefik.http.routers.isigned-api.entrypoints=websecure"
+      - "traefik.http.routers.isigned-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.isigned-api.service=isigned-api"
+      - "traefik.http.services.isigned-api.loadbalancer.server.port=4820"
+
+  web:
+    build:
+      context: ./web
+      args:
+        VITE_ZITADEL_ISSUER: https://auth.isigned.it
+        VITE_ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID:-}
+    image: isigned-webapp:latest
+    container_name: isigned-app-web
+    restart: unless-stopped
+    networks: [industreal_net]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=industreal_industreal_net"
+      - "traefik.http.routers.isigned-app-http.rule=Host(`app.isigned.it`)"
+      - "traefik.http.routers.isigned-app-http.entrypoints=web"
+      - "traefik.http.routers.isigned-app-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.isigned-app-http.service=isigned-app"
+      - "traefik.http.routers.isigned-app.rule=Host(`app.isigned.it`)"
+      - "traefik.http.routers.isigned-app.entrypoints=websecure"
+      - "traefik.http.routers.isigned-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.isigned-app.service=isigned-app"
+      - "traefik.http.services.isigned-app.loadbalancer.server.port=80"
+
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:v2.65.1
+    container_name: isigned-auth
+    restart: unless-stopped
+    command: 'start --masterkeyFromEnv --tlsMode external'
+    environment:
+      ZITADEL_MASTERKEY: ${ZITADEL_MASTERKEY:?set in .env — 32 chars}
+      ZITADEL_DATABASE_POSTGRES_HOST: zitadel-db
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: ${ZITADEL_DB_PASSWORD:?set in .env}
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: postgres
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: ${ZITADEL_DB_ADMIN_PASSWORD:?set in .env}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+      ZITADEL_EXTERNALDOMAIN: auth.isigned.it
+      ZITADEL_EXTERNALPORT: 443
+      ZITADEL_EXTERNALSECURE: 'true'
+    depends_on:
+      zitadel-db:
+        condition: service_healthy
+    networks: [industreal_net]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=industreal_industreal_net"
+      - "traefik.http.routers.isigned-auth-http.rule=Host(`auth.isigned.it`)"
+      - "traefik.http.routers.isigned-auth-http.entrypoints=web"
+      - "traefik.http.routers.isigned-auth-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.isigned-auth-http.service=isigned-auth"
+      - "traefik.http.routers.isigned-auth.rule=Host(`auth.isigned.it`)"
+      - "traefik.http.routers.isigned-auth.entrypoints=websecure"
+      - "traefik.http.routers.isigned-auth.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.isigned-auth.service=isigned-auth"
+      - "traefik.http.services.isigned-auth.loadbalancer.server.port=8080"
+
+  zitadel-db:
+    image: postgres:16-alpine
+    container_name: isigned-auth-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${ZITADEL_DB_ADMIN_PASSWORD:?set in .env}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - zitadel-db:/var/lib/postgresql/data
+    networks: [industreal_net]
+
+volumes:
+  backend-data:
+  zitadel-db:
+
+networks:
+  industreal_net:
+    external: true
+    name: industreal_industreal_net

@@ -18,8 +18,11 @@ export interface AuthUser {
 
 const issuer = process.env.ZITADEL_ISSUER?.replace(/\/$/, '');
 const audience = process.env.ZITADEL_CLIENT_ID;
+/** In Docker, tokens claim the public issuer (e.g. http://localhost:8080) while
+ *  the backend reaches Zitadel via the service name — set ZITADEL_INTERNAL_URL. */
+const jwksBase = (process.env.ZITADEL_INTERNAL_URL ?? issuer)?.replace(/\/$/, '');
 
-const jwks = issuer ? createRemoteJWKSet(new URL(`${issuer}/oauth/v2/keys`)) : null;
+const jwks = issuer && jwksBase ? createRemoteJWKSet(new URL(`${jwksBase}/oauth/v2/keys`)) : null;
 
 export const authEnabled = Boolean(issuer);
 export const DEV_USER: AuthUser = { id: 'dev-user', name: 'Dev User', roles: [] };

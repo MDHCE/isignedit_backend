@@ -9,10 +9,12 @@ The steps below need your accounts — Claude can't create them for you.
 **Option A — Zitadel Cloud (fastest):** create an org at https://zitadel.com
 (choose an **EU region**). Your issuer is `https://<org>-<id>.zitadel.cloud`.
 
-**Option B — self-hosted (EU sovereignty, fits newton later):**
+**Option B — self-hosted (the default here — everything runs in Docker):**
 ```bash
-docker compose -f docker-compose.zitadel.yml up -d   # local: http://localhost:8080
+docker compose up -d --build     # Zitadel: http://localhost:8080 (+ backend, web)
 ```
+Production equivalent: `docker-compose.prod.yml` runs Zitadel at auth.isigned.it
+behind newton's Traefik (set the secrets in `.env`, add the DNS records).
 
 ## 2. Create the application
 

@@ -6,6 +6,15 @@ Repos: **backend** = MDHCE/isignedit_backend (this repo, incl. web) ·
 
 ## Backend + Web (this repo)
 
+### v0.5.0 — 2026-07-29 · `COMMIT_HASH`
+**Request:** *"I want to keep everything in Docker, also Zitadel."*
+- Backend Dockerfile (multi-stage TS build, node:22-alpine, healthcheck, data volume)
+- Web Dockerfile (Vite build → nginx, /api proxied to the backend service)
+- Root `docker-compose.yml`: Zitadel + Postgres + backend + web in one stack
+  (auth off by default; `ZITADEL_INTERNAL_URL` lets tokens keep the public issuer)
+- `docker-compose.prod.yml`: newton/Traefik stack — app./api./auth.isigned.it
+- Images build-verified and smoke-tested on newton
+
 ### v0.4.0 — 2026-07-29 · `145951c`
 **Request:** *"Integrate Zitadel, change its appearance to isigned.it. Add solution-wide
 journaling (traceability, recovery). Create roles (administrator, printer, logistics,
