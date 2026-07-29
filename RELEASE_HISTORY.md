@@ -6,7 +6,7 @@ Repos: **backend** = MDHCE/isignedit_backend (this repo, incl. web) ·
 
 ## Backend + Web (this repo)
 
-### v0.6.1 — 2026-07-29 · `COMMIT_HASH`
+### v0.6.1 — 2026-07-29 · `f848907`
 **Request:** *"I will need DoS protection and geo-redundancy, might be Cloudflare and
 Amazon. Recommend best practices."* → *"Add to documentation as a todo and add to the features."*
 - `TODO.md`: phased plan — Cloudflare edge (tunnel, WAF, rate limits, Zero Trust, Turnstile)
