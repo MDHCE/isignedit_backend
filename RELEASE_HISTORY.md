@@ -6,6 +6,15 @@ Repos: **backend** = MDHCE/isignedit_backend (this repo, incl. web) ·
 
 ## Backend + Web (this repo)
 
+### Unreleased — 2026-07-29
+**Request:** *"What's remaining? (like register cloudhsm, register login social apis,
+payment providers) I need a detailed list"*
+- `OPEN-ITEMS.md`: 54 numbered open items — 30 external accounts/registrations (with
+  rough costs, lead times, what each blocks) + 24 engineering items, priority-flagged,
+  dependency-ordered, with honest risk notes (no tests yet; PDF/PAdES scope; Print
+  Station size; legal opinions gate)
+- Mobile: `expo-asset` added, iOS app verified running in the simulator (`c7d6d62`)
+
 ### v0.6.2 — 2026-07-29 · `812efc9` (+ website `ff16a72`)
 **Request:** *"Update the landing page accordingly. Add the login, deploy the containers."*
 - Landing page: "Log in" → app.isigned.it (nav + footer), deployed
