@@ -7,6 +7,15 @@ Repos: **backend** = MDHCE/isignedit_backend (this repo, incl. web) ·
 ## Backend + Web (this repo)
 
 ### Unreleased — 2026-07-29
+**Request:** *"How much is a QTSP partner per month? I need a business plan"*
+- **Business Plan v1.0** (`tools/build_businessplan.py` → PDF + website `documents/`):
+  per-event unit economics from the implemented price list, two document archetypes,
+  partner-QTSP cost analysis (retail €4–15/sig vs wholesale cents + certificate
+  activation; planning basis €500/mo + €2.00/sig) with the **make-vs-buy crossover at
+  30–40k QES signatures/yr**, three-year projection in three scenarios, funding options
+  (~€450–500k full raise vs ~€250k lean), single-variable sensitivities, assumption
+  register flagging the four quote-needed supply lines
+
 **Request:** *"QTSP status based on Securosys?"* → *"update"*
 - **IT Architecture v1.5** (`tools/build_architecture.py`, PDF + website `documents/`):
   §3.2 gains the verified Primus certification basis (EN 419 221-5 EAL4+ cert CC 1/21;
