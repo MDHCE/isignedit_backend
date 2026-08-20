@@ -48,8 +48,9 @@ planning only — every one needs a real quote.
 |---|---|---|---|---|
 | 🔴 10 | **Securosys CloudsHSM account** — contact sales, sign contract | securosys.com | **quote needed** (subscription; typically 3-figure €/mo and up) | prerequisite for real signatures |
 | 🔴 11 | TSB endpoint URL + **API key**; create signing key with **Smart Key Attributes** (SCAL2 approval rules) | Securosys portal | included | fills `SECUROSYS_*` env |
+| 🔴 11a | **Confirm in writing**: (a) has the *managed* CloudsHSM been accepted in prior QTSP audits? (b) available deployment regions — EU-hosted option? | Securosys + chosen CAB | — | Stage 3 HSM gate; see Architecture §3.2.2 |
 | 🔴 12 | **Partner QTSP** for Stage-1 qualified certificates (Skribble / Yousign / InfoCert / Namirial…) | vendor contract | per-signature or subscription | QES before your own QTSP status |
-| 🟢 13 | Own **QTSP status** — conformity assessment + supervisory-body listing | accredited auditor + national body | **rough €30–80k+** | Stage 3; 12–18 months |
+| 🟢 13 | Own **QTSP status** — conformity assessment + supervisory-body listing | accredited auditor + national body | **rough €30–80k+** | Stage 3; 12–18 months. **A certified HSM is ~10–20% of this** — the rest is organisational (CP/CPS, trust roles, termination plan, archives, insurance, annual surveillance). See Architecture §3.2.1 |
 
 ### 1.4 Fulfilment — the physical half
 | # | Item | Where | Cost | Notes |

@@ -7,6 +7,15 @@ Repos: **backend** = MDHCE/isignedit_backend (this repo, incl. web) ·
 ## Backend + Web (this repo)
 
 ### Unreleased — 2026-07-29
+**Request:** *"QTSP status based on Securosys?"* → *"update"*
+- **IT Architecture v1.5** (`tools/build_architecture.py`, PDF + website `documents/`):
+  §3.2 gains the verified Primus certification basis (EN 419 221-5 EAL4+ cert CC 1/21;
+  EN 419 241-2 QSCD for *server signing* incl. SCAL2/SAM — the standard that makes
+  iSigned.it's remote signing qualifiable); new §3.2.1 "QSCD ≠ QTSP" table splitting
+  device leg vs. organisational leg; §3.2.2 two open questions (managed-service
+  acceptance in prior audits, Swiss location / EU deployment) feeding the Stage 3 gate
+- `OPEN-ITEMS.md`: item 11a added; item 13 annotated (HSM ≈ 10–20% of QTSP effort)
+
 **Request:** *"What's remaining? (like register cloudhsm, register login social apis,
 payment providers) I need a detailed list"*
 - `OPEN-ITEMS.md`: 54 numbered open items — 30 external accounts/registrations (with
